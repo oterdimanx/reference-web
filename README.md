@@ -1,2 +1,2 @@
 # reference-web
- hello world 
+Reference Web is a platform designed to help people to gain visibility on the net
