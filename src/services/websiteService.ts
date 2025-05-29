@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { RankingSummary } from '@/lib/mockData';
 
@@ -14,6 +15,7 @@ export interface DetailedWebsite extends RankingSummary {
   pricingTitle?: string;
   pricingPrice?: number;
   imagePath?: string | null;
+  keywords?: string; // Add keywords field
 }
 
 // Map RankingSummary to database structure and back
@@ -31,7 +33,7 @@ export const mapToDbWebsite = (website: RankingSummary) => {
 
 // Map detailed website data to database structure
 export const mapToDbDetailedWebsite = (website: DetailedWebsite) => {
-  return {
+  const dbWebsite = {
     id: website.websiteId,
     domain: website.domain,
     avg_position: website.avgPosition,
@@ -47,8 +49,17 @@ export const mapToDbDetailedWebsite = (website: DetailedWebsite) => {
     phone_number: website.phoneNumber,
     reciprocal_link: website.reciprocalLink,
     pricing_id: website.pricingId,
-    image_path: website.imagePath
+    image_path: website.imagePath,
+    keywords: website.keywords // Make sure keywords field is mapped
   };
+  
+  console.log('Mapping to DB structure:', {
+    original: website,
+    mapped: dbWebsite,
+    keywordsField: dbWebsite.keywords
+  });
+  
+  return dbWebsite;
 };
 
 export const mapFromDbWebsite = (dbWebsite: any): RankingSummary => {
@@ -75,7 +86,8 @@ export const mapFromDbDetailedWebsite = (dbWebsite: any): DetailedWebsite => {
     phoneNumber: dbWebsite.phone_number,
     reciprocalLink: dbWebsite.reciprocal_link,
     pricingId: dbWebsite.pricing_id,
-    imagePath: dbWebsite.image_path
+    imagePath: dbWebsite.image_path,
+    keywords: dbWebsite.keywords // Add keywords field mapping
   };
 };
 
@@ -129,6 +141,8 @@ export const saveWebsiteDetailed = async (website: DetailedWebsite): Promise<Det
       user_id: user.id // Set the user_id to the current authenticated user
     };
     
+    console.log('Final data being inserted to database:', websiteData);
+    
     const { data, error } = await supabase
       .from('websites')
       .insert(websiteData)
@@ -136,9 +150,12 @@ export const saveWebsiteDetailed = async (website: DetailedWebsite): Promise<Det
       .single();
       
     if (error) {
-      console.error('Error saving website:', error);
+      console.error('Error saving website to database:', error);
+      console.error('Error details:', error.message, error.details, error.hint);
       return null;
     }
+    
+    console.log('Successfully saved to database:', data);
     
     return mapFromDbDetailedWebsite(data);
   } catch (error) {

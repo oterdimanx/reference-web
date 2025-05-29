@@ -275,6 +275,56 @@ export type Database = {
         }
         Relationships: []
       }
+      ranking_snapshots: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          keyword: string
+          position: number | null
+          search_engine: string
+          snapshot_date: string
+          title: string | null
+          updated_at: string
+          url: string | null
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          keyword: string
+          position?: number | null
+          search_engine?: string
+          snapshot_date?: string
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          keyword?: string
+          position?: number | null
+          search_engine?: string
+          snapshot_date?: string
+          title?: string | null
+          updated_at?: string
+          url?: string | null
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ranking_snapshots_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           created_at: string
@@ -374,6 +424,7 @@ export type Database = {
           id: string
           image_path: string | null
           keyword_count: number
+          keywords: string | null
           phone_number: string | null
           phone_prefix: string | null
           position_change: number
@@ -395,6 +446,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           keyword_count: number
+          keywords?: string | null
           phone_number?: string | null
           phone_prefix?: string | null
           position_change: number
@@ -416,6 +468,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           keyword_count?: number
+          keywords?: string | null
           phone_number?: string | null
           phone_prefix?: string | null
           position_change?: number
