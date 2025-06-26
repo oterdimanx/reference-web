@@ -1,32 +1,40 @@
-
-import { useQuery } from '@tanstack/react-query';
 import { Header } from '@/components/Layout/Header';
 import { Footer } from '@/components/Layout/Footer';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { Link } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Check, Star } from 'lucide-react';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
+import { useUserSubscription } from '@/hooks/useUserSubscription';
+import { SubscriptionUpgrade } from '@/components/Pricing/SubscriptionUpgrade';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface PricingPlan {
   id: string;
   title: string;
-  title_fr: string | null;
-  description_fr: string | null;
-  description_en: string | null;
   price: number;
   active: boolean;
+  description_en?: string;
+  description_fr?: string;
+  title_fr?: string;
 }
 
 const Pricing = () => {
-  const { user } = useAuth();
   const { t, language } = useLanguage();
-  
+  const { user } = useAuth();
+  const { saveUserSubscription } = useSubscriptionManager();
+  const { hasSubscription } = useUserSubscription();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+
   const { data: pricingPlans, isLoading } = useQuery({
-    queryKey: ['pricing-plans-public'],
+    queryKey: ['pricing-plans'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pricing')
@@ -38,7 +46,40 @@ const Pricing = () => {
       return data as PricingPlan[];
     }
   });
-  
+
+  const handleSelectPlan = async (plan: PricingPlan) => {
+    if (!user) {
+      // Redirect to auth if not logged in
+      window.location.href = '/auth';
+      return;
+    }
+
+    setSelectedPlan(plan.id);
+    try {
+      await saveUserSubscription(plan);
+      toast.success(`Successfully subscribed to ${plan.title}!`);
+      // Redirect to add website page
+      window.location.href = '/add-website';
+    } catch (error) {
+      console.error('Error selecting plan:', error);
+      toast.error('Failed to select plan');
+    } finally {
+      setSelectedPlan(null);
+    }
+  };
+
+  const getWebsitesAllowed = (price: number) => {
+    if (price === 1) return 1;
+    if (price < 10) return 5;
+    return 999;
+  };
+
+  const getMostPopularPlan = () => {
+    if (!pricingPlans || pricingPlans.length === 0) return null;
+    // Return the middle plan or the one with price around 5-10
+    return pricingPlans.find(plan => plan.price >= 5 && plan.price <= 10) || pricingPlans[1];
+  };
+
   const getFeatures = (plan: PricingPlan) => {
     // Get the appropriate description based on language
     const description = language === 'fr' && plan.description_fr ? plan.description_fr : plan.description_en;
@@ -82,28 +123,60 @@ const Pricing = () => {
     }
   };
 
+  const getPlanDescription = (plan: PricingPlan) => {
+    return language === 'fr' && plan.description_fr ? plan.description_fr : plan.description_en;
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4 gradient-text">
-              {t('pricingPage', 'title')} <span className="text-rank-teal">{t('pricingPage', 'choosePlan')}</span>
+              <span className="text-rank-teal">{t('pricingPage', 'choosePlan')}</span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
               {t('pricingPage', 'subtitle')}
             </p>
           </div>
+        
 
-          {isLoading ? (
-            <div className="text-center chrome-card p-8 rounded-lg">
-              <div className="floating">
-                {t('pricingPage', 'loadingPlans')}
+        {/* Show upgrade section for existing users */}
+        {user && hasSubscription && (
+          <div className="mb-12">
+            <SubscriptionUpgrade />
+          </div>
+        )}
+
+        {/* Show regular pricing for new users or users without subscription */}
+        {(!user || !hasSubscription) && (
+          <>
+            {isLoading ? (
+              <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="chrome-card">
+                    <CardHeader>
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-8 w-24" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-32 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+            ) : !pricingPlans || pricingPlans.length === 0 ? (
+              <Card className="max-w-md mx-auto chrome-card">
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold mb-2">{t('pricing', 'noPricingPlans')}</h3>
+                    <p className="text-muted-foreground">{t('pricing', 'contactSupport')}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {pricingPlans?.map((plan, index) => (
                 <div key={plan.id} className="relative">
                   <Card 
@@ -141,9 +214,9 @@ const Pricing = () => {
                       {user ? (
                         <Button 
                           asChild 
-                          className={`w-full chrome-button-subtle ${
+                          className={`w-full chrome-accent ${
                             plan.price === 1 
-                              ? 'chrome-accent-subtle text-white' 
+                              ? 'chrome-accent-subtle text-black' 
                               : 'chrome-button-subtle'
                           }`}
                         >
@@ -152,9 +225,9 @@ const Pricing = () => {
                       ) : (
                         <Button 
                           asChild 
-                          className={`w-full chrome-button-subtle ${
+                          className={`w-full chrome-accent ${
                             plan.price === 1 
-                              ? 'chrome-accent-subtle text-white' 
+                              ? 'chrome-accent-subtle text-black' 
                               : 'chrome-button-subtle'
                           }`}
                         >
@@ -165,10 +238,12 @@ const Pricing = () => {
                   </Card>
                 </div>
               ))}
-            </div>
-          )}
-          
-          <div className="mt-16 text-center">
+              </div>
+            )}
+          </>
+        )}
+        </div>
+        <div className="mt-16 text-center">
             <div className="chrome-card-subtle rounded-lg p-8 border-blue-200 dark:border-blue-800">
               <h3 className="text-2xl font-semibold mb-4 text-blue-800 dark:text-blue-200 gradient-text">
                 {t('pricingPage', 'startMessage')} {t('pricingPage', 'startAmount')}
@@ -188,8 +263,7 @@ const Pricing = () => {
               </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
       <Footer />
     </div>
   );
