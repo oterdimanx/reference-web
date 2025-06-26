@@ -240,6 +240,7 @@ h1, h2 {
   position: relative;
   top: 10px;
 }
+
 /* LIGHT THEME STYLES */
 html.light body {
   background: linear-gradient(145deg, #f0f9ff, #e0f2fe) !important;
