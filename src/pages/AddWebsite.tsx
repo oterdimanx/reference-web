@@ -10,6 +10,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAddWebsiteForm } from '@/hooks/useAddWebsiteForm';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
+import { useWebsiteSubmission } from '@/hooks/useWebsiteSubmission';
+import { useSubscriptionManager } from '@/hooks/useSubscriptionManager';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { WebsiteBasicInfo } from '@/components/AddWebsite/WebsiteBasicInfo';
 import { ContactInfo } from '@/components/AddWebsite/ContactInfo';
 import { AdditionalSettings } from '@/components/AddWebsite/AdditionalSettings';
@@ -26,10 +30,12 @@ interface PricingPlan {
 const AddWebsite = () => {
   const { t } = useLanguage();
   const { subscription, isLoading: subscriptionLoading, canAddWebsite, websitesUsed, websitesAllowed } = useUserSubscription();
+  const { isAdmin } = useAuth();
   const [currentStep, setCurrentStep] = useState<'form' | 'payment' | 'success'>('form');
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
   const [validatedFormData, setValidatedFormData] = useState<any>(null);
   const [selectedPlanPrice, setSelectedPlanPrice] = useState<number>(29.99);
+  const [storedSelectedImage, setStoredSelectedImage] = useState<File | null>(null);
   
   // Fetch pricing plans
   const { data: pricingPlans, isLoading: pricingLoading } = useQuery({
@@ -47,6 +53,8 @@ const AddWebsite = () => {
   });
   
   const { form, isSubmitting, selectedImage, setSelectedImage, onSubmit } = useAddWebsiteForm(pricingPlans);
+  const { submitWebsite } = useWebsiteSubmission();
+  const { saveUserSubscription } = useSubscriptionManager();
   
   // Show loading state while checking subscription
   if (subscriptionLoading) {
@@ -63,8 +71,8 @@ const AddWebsite = () => {
     );
   }
   
-  // Show subscription limit reached message
-  if (!canAddWebsite && subscription?.hasSubscription) {
+  // Show subscription limit reached message (but not for admins)
+  if (!isAdmin && !canAddWebsite && subscription?.hasSubscription) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -89,25 +97,48 @@ const AddWebsite = () => {
     );
   }
   
-  const handleFormSubmit = (data: any) => {
-    // Store form data and proceed to payment
+  const handleFormSubmit = async (data: any) => {
+    // Store form data and selected image for after payment
     setValidatedFormData(data);
+    setStoredSelectedImage(selectedImage);
     
-    // Find selected plan price
+    // Store data in sessionStorage for retrieval after payment
+    sessionStorage.setItem('websiteFormData', JSON.stringify(data));
+    if (pricingPlans) {
+      sessionStorage.setItem('pricingPlans', JSON.stringify(pricingPlans));
+    }
+    if (selectedImage) {
+      // Store image info (in real implementation, you might upload to temp storage)
+      sessionStorage.setItem('websiteImagePath', selectedImage.name);
+    }
+    
+    // Find selected plan and directly proceed to Stripe checkout
     const selectedPlan = pricingPlans?.find(plan => plan.id === data.pricing_id);
     if (selectedPlan) {
       setSelectedPlanPrice(selectedPlan.price);
+      
+      // Directly trigger Stripe checkout via subscription manager
+      try {
+        await saveUserSubscription(selectedPlan);
+      } catch (error) {
+        console.error('Error creating checkout session:', error);
+        toast.error('Failed to create checkout session. Please try again.');
+      }
     }
-    
-    setCurrentStep('payment');
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     setIsPaymentComplete(true);
     
-    // Now actually submit the data to database
+    // Now actually submit the data to database with the stored image
     if (validatedFormData) {
-      onSubmit(validatedFormData, pricingPlans);
+      try {
+        await submitWebsite(validatedFormData, pricingPlans, storedSelectedImage);
+      } catch (error) {
+        console.error('Error submitting website after payment:', error);
+        // Don't show success page if submission fails
+        return;
+      }
     }
     
     setTimeout(() => {
