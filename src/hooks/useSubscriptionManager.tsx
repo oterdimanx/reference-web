@@ -73,7 +73,11 @@ export const useSubscriptionManager = () => {
         body: {
           priceId: newPricingPlan.id,
           userId: user.id,
-          isUpgrade: true
+          isUpgrade: true,
+          upgradeData: {
+            newPricingId: newPricingPlan.id,
+            newPricingTitle: newPricingPlan.title
+          }
         }
       });
 
