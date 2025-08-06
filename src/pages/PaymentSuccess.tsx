@@ -26,7 +26,7 @@ const PaymentSuccess = () => {
         // Check for upgrade flow from URL parameters
         const isUpgradeFlow = searchParams.get('upgrade');
         const newPricingId = searchParams.get('pricing_id');
-        
+
         // Get stored form data from sessionStorage
         const storedData = sessionStorage.getItem('websiteFormData');
         const storedImagePath = sessionStorage.getItem('websiteImagePath');
@@ -101,7 +101,7 @@ const PaymentSuccess = () => {
           console.log('PaymentSuccess: About to call submitWebsite');
           await submitWebsite(formData, pricingPlans, imageFile, true);
           console.log('PaymentSuccess: submitWebsite completed successfully');
-          
+
           // Clean up stored data
           sessionStorage.removeItem('websiteFormData');
           sessionStorage.removeItem('websiteImagePath');
