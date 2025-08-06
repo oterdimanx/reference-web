@@ -18,6 +18,7 @@ import { WebsiteBasicInfo } from '@/components/AddWebsite/WebsiteBasicInfo';
 import { ContactInfo } from '@/components/AddWebsite/ContactInfo';
 import { AdditionalSettings } from '@/components/AddWebsite/AdditionalSettings';
 import { PaymentStep } from '@/components/Payment/PaymentStep';
+import { SimpleWebsiteForm } from '@/components/AddWebsite/SimpleWebsiteForm';
 import { AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -29,7 +30,7 @@ interface PricingPlan {
 
 const AddWebsite = () => {
   const { t } = useLanguage();
-  const { subscription, isLoading: subscriptionLoading, canAddWebsite, websitesUsed, websitesAllowed } = useUserSubscription();
+  const { subscription, isLoading: subscriptionLoading, canAddWebsite, websitesUsed, websitesAllowed, hasSubscription } = useUserSubscription();
   const { isAdmin } = useAuth();
   const [currentStep, setCurrentStep] = useState<'form' | 'payment' | 'success'>('form');
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
@@ -56,6 +57,17 @@ const AddWebsite = () => {
   const { submitWebsite } = useWebsiteSubmission();
   const { saveUserSubscription } = useSubscriptionManager();
   
+  // Debug logging
+  console.log('AddWebsite Debug:', {
+    subscriptionLoading,
+    hasSubscription,
+    canAddWebsite,
+    isAdmin,
+    websitesUsed,
+    websitesAllowed,
+    subscription
+  });
+
   // Show loading state while checking subscription
   if (subscriptionLoading) {
     return (
@@ -95,6 +107,11 @@ const AddWebsite = () => {
         <Footer />
       </div>
     );
+  }
+
+  // If user has an active subscription and hasn't reached limit, show simple form
+  if (hasSubscription && canAddWebsite) {
+    return <SimpleWebsiteForm userSubscription={subscription} />;
   }
   
   const handleFormSubmit = async (data: any) => {

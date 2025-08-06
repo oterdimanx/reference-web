@@ -1,9 +1,12 @@
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Event {
@@ -29,11 +32,14 @@ interface Event {
 
 export function EventAnalytics() {
   const { t } = useLanguage();
+  const [showAllEvents, setShowAllEvents] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
 
   const { data: events, isLoading } = useQuery({
-    queryKey: ['admin', 'events'],
+    queryKey: ['admin', 'events', showAllEvents, currentPage],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('events')
         .select(`
           *,
@@ -41,25 +47,68 @@ export function EventAnalytics() {
             domain
           )
         `)
-        .order('received_at', { ascending: false })
-        .limit(100);
+        .order('received_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching events:', error);
-        return [];
+      // Apply 7-day filter only when showAllEvents is false
+      if (!showAllEvents) {
+        query = query.gte('received_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+        // For 7-day view, keep the original limit of 100
+        const { data, error } = await query.limit(100);
+        
+        if (error) {
+          console.error('Error fetching events:', error);
+          return [];
+        }
+        
+        return data as Event[];
+      } else {
+        // For all events, apply pagination
+        const offset = (currentPage - 1) * pageSize;
+        const { data, error } = await query.range(offset, offset + pageSize - 1);
+        
+        if (error) {
+          console.error('Error fetching events:', error);
+          return [];
+        }
+        
+        return data as Event[];
       }
-
-      return data as Event[];
     }
   });
 
-  const { data: eventStats } = useQuery({
-    queryKey: ['admin', 'event-stats'],
+  // Get total count for pagination (only when showing all events)
+  const { data: totalCount } = useQuery({
+    queryKey: ['admin', 'events-count', showAllEvents],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!showAllEvents) return 0;
+      
+      const { count, error } = await supabase
         .from('events')
-        .select('event_type, received_at')
-        .gte('received_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error('Error fetching events count:', error);
+        return 0;
+      }
+
+      return count || 0;
+    },
+    enabled: showAllEvents
+  });
+
+  const { data: eventStats } = useQuery({
+    queryKey: ['admin', 'event-stats', showAllEvents],
+    queryFn: async () => {
+      let query = supabase
+        .from('events')
+        .select('event_type, received_at');
+
+      // Apply 7-day filter only when showAllEvents is false
+      if (!showAllEvents) {
+        query = query.gte('received_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching event stats:', error);
@@ -85,10 +134,35 @@ export function EventAnalytics() {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-2">
+          <Button
+            variant={!showAllEvents ? "default" : "outline"}
+            onClick={() => {
+              setShowAllEvents(false);
+              setCurrentPage(1);
+            }}
+          >
+            Last 7 Days
+          </Button>
+          <Button
+            variant={showAllEvents ? "default" : "outline"}
+            onClick={() => {
+              setShowAllEvents(true);
+              setCurrentPage(1);
+            }}
+          >
+            All Events
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Events (7d)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Events {!showAllEvents ? '(7d)' : '(All)'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{eventStats?.totalEvents || 0}</div>
@@ -97,7 +171,9 @@ export function EventAnalytics() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Click Events (7d)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Click Events {!showAllEvents ? '(7d)' : '(All)'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{eventStats?.clickEvents || 0}</div>
@@ -106,7 +182,9 @@ export function EventAnalytics() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Page Views (7d)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Page Views {!showAllEvents ? '(7d)' : '(All)'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{eventStats?.pageviewEvents || 0}</div>
@@ -116,7 +194,9 @@ export function EventAnalytics() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Events</CardTitle>
+          <CardTitle>
+            {showAllEvents ? 'All Events' : 'Recent Events'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -162,6 +242,46 @@ export function EventAnalytics() {
               ))}
             </TableBody>
           </Table>
+          
+          {showAllEvents && totalCount && totalCount > pageSize && (
+            <div className="mt-4 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.ceil(totalCount / pageSize) }, (_, i) => i + 1)
+                    .filter(page => {
+                      const start = Math.max(1, currentPage - 2);
+                      const end = Math.min(Math.ceil(totalCount / pageSize), currentPage + 2);
+                      return page >= start && page <= end;
+                    })
+                    .map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(Math.min(Math.ceil(totalCount / pageSize), currentPage + 1))}
+                      className={currentPage === Math.ceil(totalCount / pageSize) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

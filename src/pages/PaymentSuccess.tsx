@@ -102,7 +102,6 @@ const PaymentSuccess = () => {
           await submitWebsite(formData, pricingPlans, imageFile, true);
           console.log('PaymentSuccess: submitWebsite completed successfully');
 
-          
           // Clean up stored data
           sessionStorage.removeItem('websiteFormData');
           sessionStorage.removeItem('websiteImagePath');
