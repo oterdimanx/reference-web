@@ -26,7 +26,7 @@ const PaymentSuccess = () => {
         // Check for upgrade flow from URL parameters
         const isUpgradeFlow = searchParams.get('upgrade');
         const newPricingId = searchParams.get('pricing_id');
-
+        
         // Get stored form data from sessionStorage
         const storedData = sessionStorage.getItem('websiteFormData');
         const storedImagePath = sessionStorage.getItem('websiteImagePath');
