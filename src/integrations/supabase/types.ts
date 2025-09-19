@@ -68,6 +68,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_execution_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          execution_duration: unknown | null
+          execution_time: string
+          id: string
+          job_name: string
+          processed_requests: number | null
+          request_source: string | null
+          response_data: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          execution_duration?: unknown | null
+          execution_time?: string
+          id?: string
+          job_name: string
+          processed_requests?: number | null
+          request_source?: string | null
+          response_data?: Json | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          execution_duration?: unknown | null
+          execution_time?: string
+          id?: string
+          job_name?: string
+          processed_requests?: number | null
+          request_source?: string | null
+          response_data?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       custom_translations: {
         Row: {
           created_at: string
@@ -251,12 +290,74 @@ export type Database = {
           },
         ]
       }
+      page_metadata: {
+        Row: {
+          author: string | null
+          canonical_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          keywords: string | null
+          language: string
+          og_description: string | null
+          og_image: string | null
+          og_title: string | null
+          page_key: string
+          robots: string | null
+          title: string | null
+          twitter_description: string | null
+          twitter_image: string | null
+          twitter_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          author?: string | null
+          canonical_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          keywords?: string | null
+          language?: string
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          page_key: string
+          robots?: string | null
+          title?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author?: string | null
+          canonical_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          keywords?: string | null
+          language?: string
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          page_key?: string
+          robots?: string | null
+          title?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pricing: {
         Row: {
           active: boolean
           created_at: string
           description_en: string | null
           description_fr: string | null
+          frequency_en: string | null
+          frequency_fr: string | null
           id: string
           price: number
           title: string
@@ -268,6 +369,8 @@ export type Database = {
           created_at?: string
           description_en?: string | null
           description_fr?: string | null
+          frequency_en?: string | null
+          frequency_fr?: string | null
           id?: string
           price: number
           title: string
@@ -279,6 +382,8 @@ export type Database = {
           created_at?: string
           description_en?: string | null
           description_fr?: string | null
+          frequency_en?: string | null
+          frequency_fr?: string | null
           id?: string
           price?: number
           title?: string
@@ -357,7 +462,15 @@ export type Database = {
           user_id?: string
           website_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_ranking_requests_website_id"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "websites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ranking_snapshots: {
         Row: {
@@ -473,10 +586,13 @@ export type Database = {
         Row: {
           created_at: string
           difficulty_estimate: string | null
+          group_color: string | null
+          group_name: string | null
           id: string
           is_priority: boolean
           keyword: string
           notes: string | null
+          tags: string[] | null
           updated_at: string
           user_id: string
           volume_estimate: string | null
@@ -485,10 +601,13 @@ export type Database = {
         Insert: {
           created_at?: string
           difficulty_estimate?: string | null
+          group_color?: string | null
+          group_name?: string | null
           id?: string
           is_priority?: boolean
           keyword: string
           notes?: string | null
+          tags?: string[] | null
           updated_at?: string
           user_id: string
           volume_estimate?: string | null
@@ -497,10 +616,13 @@ export type Database = {
         Update: {
           created_at?: string
           difficulty_estimate?: string | null
+          group_color?: string | null
+          group_name?: string | null
           id?: string
           is_priority?: boolean
           keyword?: string
           notes?: string | null
+          tags?: string[] | null
           updated_at?: string
           user_id?: string
           volume_estimate?: string | null
@@ -684,7 +806,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      cron_job_health: {
+        Row: {
+          avg_duration_seconds: number | null
+          failed_executions: number | null
+          job_name: string | null
+          last_execution: string | null
+          successful_executions: number | null
+          total_executions: number | null
+          total_processed_requests: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -700,6 +833,10 @@ export type Database = {
           user_agent?: string
         }
         Returns: undefined
+      }
+      normalize_domain: {
+        Args: { input_domain: string }
+        Returns: string
       }
       validate_domain: {
         Args: { domain_text: string }

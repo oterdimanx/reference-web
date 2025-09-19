@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { DynamicHead } from '@/components/SEO/DynamicHead';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,8 @@ interface PricingPlan {
   description_en?: string;
   description_fr?: string;
   title_fr?: string;
+  frequency_en?: string;
+  frequency_fr?: string;
 }
 
 const Pricing = () => {
@@ -112,7 +115,13 @@ const Pricing = () => {
   };
 
   const getPaymentFrequency = (plan: PricingPlan) => {
-    // €1 plan shows "one-time", basic plan shows "/3 months", premium shows "/year"
+    // Use database frequency values if available
+    const frequency = language === 'fr' && plan.frequency_fr ? plan.frequency_fr : plan.frequency_en;
+    if (frequency) {
+      return frequency;
+    }
+    
+    // Fallback to original logic if no database values
     if (plan.price === 1) {
       return t('pricingPage', 'oneTime');
     } else if (plan.price < 10) { // Basic plans are under €10
@@ -128,6 +137,12 @@ const Pricing = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <DynamicHead 
+        pageKey="pricing"
+        fallbackTitle="Pricing Plans - SEO Rank Tracker"
+        fallbackDescription="Choose the perfect SEO tracking plan for your needs. Affordable pricing starting from €1 for website ranking monitoring."
+        fallbackKeywords="seo pricing, rank tracker plans, website monitoring pricing, seo tools subscription"
+      />
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
