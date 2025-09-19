@@ -68,6 +68,7 @@ const App = () => (
                   <Route path="/sitemap" element={<Sitemap />} />
                   <Route path="/sitemap.xml" element={<SitemapXml />} />
                   <Route path="/payment-success" element={<PaymentSuccess />} />
+
                   <Route path="/admin/test-schedule-rankings" element={
                     <ProtectedRoute>
                       <TestScheduleRankings />
