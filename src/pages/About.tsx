@@ -3,6 +3,7 @@ import { Header } from '@/components/Layout/Header';
 import { Footer } from '@/components/Layout/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { DynamicHead } from '@/components/SEO/DynamicHead';
+import { Link } from 'react-router-dom';
 
 const About = () => {
   const { t } = useLanguage();
@@ -38,6 +39,9 @@ const About = () => {
             <h2 className="text-2xl font-semibold mt-8 mb-4">{t('aboutPage', 'contactTitle')}</h2>
             <p className="mb-4">
               {t('aboutPage', 'contactText')}
+              <Link to="/contact" className="text-black-600 hover:text-rank-gray dark:text-gray-300 dark:hover:text-white text-sm">
+                Contact.
+              </Link>
             </p>
           </div>
         </div>
