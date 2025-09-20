@@ -3,7 +3,6 @@ import { Header } from '@/components/Layout/Header';
 import { Footer } from '@/components/Layout/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { DynamicHead } from '@/components/SEO/DynamicHead';
-import { Link } from 'react-router-dom';
 
 const About = () => {
   const { t } = useLanguage();
@@ -43,7 +42,7 @@ const About = () => {
               to="/contact"
               className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
               >
-              Contact.
+              Contact
             </Link>
             </p>
           </div>
