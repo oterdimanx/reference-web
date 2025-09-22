@@ -4,13 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
+import { SubmarineLoading } from '@/components/ui/submarine-loading';
 import { Clock, RefreshCw, AlertCircle, Filter } from 'lucide-react';
 import { KeywordDifficultyBadge } from './KeywordDifficultyBadge';
 import { KeywordRankingStatus } from './KeywordRankingStatus';
+import { VolumeSelector } from './VolumeSelector';
+import { DifficultySelector } from './DifficultySelector';
+import { EnhancedKeywordRankingStatus } from './EnhancedKeywordRankingStatus';
 import { KeywordGroupBadge } from './KeywordGroupBadge';
 import { KeywordTagBadge } from './KeywordTagBadge';
 import { KeywordManagerDialog } from './KeywordManagerDialog';
+import { TagsManagerDialog } from './TagsManagerDialog';
+import { GroupsManagerDialog } from './GroupsManagerDialog';
 import { ExportDialog } from './ExportDialog';
 import { KeywordFilterPanel, KeywordFilters } from './KeywordFilterPanel';
 import { BulkActionToolbar } from './BulkActionToolbar';
@@ -202,6 +207,12 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
 
   const filteredKeywords = keywords.filter(applyFilters);
 
+  const makeSelectionKey = (websiteId: string, keyword: string) => `${websiteId}|${encodeURIComponent(keyword)}`;
+  const parseSelectionKey = (key: string) => {
+    const [websiteId, encodedKeyword] = key.split('|');
+    return { websiteId, keyword: decodeURIComponent(encodedKeyword || '') };
+  };
+
   const handleKeywordSelection = (keywordKey: string, checked: boolean) => {
     setSelectedKeywords(prev => {
       const newSet = new Set(prev);
@@ -216,7 +227,7 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allKeys = filteredKeywords.map(kw => `${kw.website_id}-${kw.keyword}`);
+      const allKeys = filteredKeywords.map(kw => makeSelectionKey(kw.website_id, kw.keyword));
       setSelectedKeywords(new Set(allKeys));
     } else {
       setSelectedKeywords(new Set());
@@ -228,7 +239,7 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
     
     try {
       const updates = Array.from(selectedKeywords).map(key => {
-        const [websiteId, keyword] = key.split('-', 2);
+        const { websiteId, keyword } = parseSelectionKey(key);
         return { websiteId, keyword, groupName, groupColor };
       });
       
@@ -254,7 +265,7 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
     
     try {
       const updates = Array.from(selectedKeywords).map(key => {
-        const [websiteId, keyword] = key.split('-', 2);
+        const { websiteId, keyword } = parseSelectionKey(key);
         return { websiteId, keyword, tags };
       });
       
@@ -279,21 +290,65 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
     setAvailableGroups(prev => [...prev, { name: groupName, color: groupColor }]);
   };
 
+  const handleBulkAssignVolume = async (volume: string) => {
+    if (!user || selectedKeywords.size === 0) return;
+
+    try {
+      const updates = Array.from(selectedKeywords).map(selectionKey => {
+        const [websiteId, keyword] = selectionKey.split('|');
+        return { websiteId, keyword, volume };
+      });
+
+      await keywordService.bulkUpdateKeywordVolumes(user.id, updates);
+      setSelectedKeywords(new Set());
+      loadKeywords();
+      toast({
+        title: "Volume Updated",
+        description: `Updated volume for ${updates.length} keyword${updates.length > 1 ? 's' : ''}.`
+      });
+    } catch (error) {
+      console.error('Error bulk updating volumes:', error);
+      toast({
+        title: "Error updating volume",
+        description: "Failed to update volume. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBulkAssignDifficulty = async (difficulty: string) => {
+    if (!user || selectedKeywords.size === 0) return;
+
+    try {
+      const updates = Array.from(selectedKeywords).map(selectionKey => {
+        const [websiteId, keyword] = selectionKey.split('|');
+        return { websiteId, keyword, difficulty };
+      });
+
+      await keywordService.bulkUpdateKeywordDifficulties(user.id, updates);
+      setSelectedKeywords(new Set());
+      loadKeywords();
+      toast({
+        title: "Difficulty Updated",
+        description: `Updated difficulty for ${updates.length} keyword${updates.length > 1 ? 's' : ''}.`
+      });
+    } catch (error) {
+      console.error('Error bulk updating difficulties:', error);
+      toast({
+        title: "Error updating difficulty",
+        description: "Failed to update difficulty. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const allSelected = filteredKeywords.length > 0 && selectedKeywords.size === filteredKeywords.length;
   const someSelected = selectedKeywords.size > 0 && selectedKeywords.size < filteredKeywords.length;
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-10 flex-grow" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
+      <div className="flex items-center justify-center py-16">
+        <SubmarineLoading size="lg" />
       </div>
     );
   }
@@ -345,6 +400,9 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
                   onKeywordsUpdated={loadKeywords}
                 />
               )}
+
+              <TagsManagerDialog onTagsChanged={loadKeywords} />
+              <GroupsManagerDialog onGroupsChanged={loadKeywords} />
               
               <ExportDialog 
                 keywords={filteredKeywords}
@@ -386,6 +444,8 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
         onDeselectAll={() => setSelectedKeywords(new Set())}
         onBulkAssignGroup={handleBulkAssignGroup}
         onBulkAssignTags={handleBulkAssignTags}
+        onBulkAssignVolume={handleBulkAssignVolume}
+        onBulkAssignDifficulty={handleBulkAssignDifficulty}
         onCreateGroup={handleCreateGroup}
       />
 
@@ -413,16 +473,17 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
           </thead>
           <tbody>
             {filteredKeywords.map((keyword, index) => {
-              const requestKey = `${keyword.website_id}-${keyword.keyword}`;
-              const isPending = pendingRequests.has(requestKey);
-              const isSelected = selectedKeywords.has(requestKey);
+                const requestKey = `${keyword.website_id}-${keyword.keyword}`;
+                const selectionKey = makeSelectionKey(keyword.website_id, keyword.keyword);
+                const isPending = pendingRequests.has(requestKey);
+                const isSelected = selectedKeywords.has(selectionKey);
               
               return (
                 <tr key={index} className="border-b hover:bg-muted/50">
                   <td className="py-3 px-4">
                     <Checkbox
                       checked={isSelected}
-                      onCheckedChange={(checked) => handleKeywordSelection(requestKey, checked as boolean)}
+                      onCheckedChange={(checked) => handleKeywordSelection(selectionKey, checked as boolean)}
                     />
                   </td>
                   <td className="py-3 px-4">
@@ -450,10 +511,22 @@ export const KeywordTable = ({ selectedWebsiteId }: KeywordTableProps) => {
                     </div>
                   </td>
                   <td className="py-3 px-4 text-center">
-                    {keyword.volume_estimate || 'Unknown'}
+                    <VolumeSelector
+                      value={keyword.volume_estimate}
+                      websiteId={keyword.website_id}
+                      keyword={keyword.keyword}
+                      userId={user?.id || ''}
+                      onUpdate={() => loadKeywords()}
+                    />
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <KeywordDifficultyBadge difficulty={keyword.difficulty_estimate || 'Unknown'} />
+                    <DifficultySelector
+                      value={keyword.difficulty_estimate}
+                      websiteId={keyword.website_id}
+                      keyword={keyword.keyword}
+                      userId={user?.id || ''}
+                      onUpdate={() => loadKeywords()}
+                    />
                   </td>
                   <td className="py-3 px-4 text-center">
                     <KeywordRankingStatus ranking={keyword.latest_position} />

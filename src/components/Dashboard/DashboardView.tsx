@@ -5,39 +5,58 @@ import {
   mockRankingData, 
   getRankingSummaries, 
   getOverallStats,
-  RankingSummary 
+  RankingSummary,
+  RankingData 
 } from '@/lib/mockData';
 import { getUserWebsites } from '@/services/websiteService';
+import { getDashboardRankingData } from '@/services/rankingService';
+import { useAuth } from '@/contexts/AuthContext';
 import { StatsSection } from './StatsSection';
 import { MainDashboardContent } from './MainDashboardContent';
 import { QuickTipsCard } from './QuickTipsCard';
+// import { RankingDebugTest } from '@/components/Debug/RankingDebugTest';
 
 export function DashboardView() {
+  const { user } = useAuth();
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string>('1');
   const [websites, setWebsites] = useState<RankingSummary[]>([]);
   const [overallStats, setOverallStats] = useState(getOverallStats());
+  const [rankingData, setRankingData] = useState<RankingData[]>([]);
+  const [isLoadingRankings, setIsLoadingRankings] = useState(false);
   
-  // Fetch websites from Supabase on component mount
+  // Fetch websites and ranking data
   useEffect(() => {
-    const fetchWebsites = async () => {
-      const userWebsites = await getUserWebsites();
-      
-      if (userWebsites.length > 0) {
-        setWebsites(userWebsites);
-        // Set the first website as selected if we have any
-        setSelectedWebsiteId(userWebsites[0].websiteId);
+    const fetchData = async () => {
+      if (user) {
+        // Authenticated user - fetch real data
+        const userWebsites = await getUserWebsites();
         
-        // Update overall stats based on the loaded websites
-        updateOverallStats(userWebsites);
+        if (userWebsites.length > 0) {
+          setWebsites(userWebsites);
+          setSelectedWebsiteId(userWebsites[0].websiteId);
+          updateOverallStats(userWebsites);
+          
+          // Fetch real ranking data
+          setIsLoadingRankings(true);
+          const realRankingData = await getDashboardRankingData(userWebsites);
+          setRankingData(realRankingData);
+          setIsLoadingRankings(false);
+        } else {
+          // User has no websites, use mock data
+          const mockWebsites = getRankingSummaries();
+          setWebsites(mockWebsites);
+          setRankingData(mockRankingData);
+        }
       } else {
-        // Fall back to mock data if no user websites exist
+        // Not authenticated - use mock data
         const mockWebsites = getRankingSummaries();
         setWebsites(mockWebsites);
+        setRankingData(mockRankingData);
       }
     };
     
-    fetchWebsites();
-  }, []);
+    fetchData();
+  }, [user]);
   
   // Calculate and update overall stats based on the website list
   const updateOverallStats = (websitesList: RankingSummary[]) => {
@@ -61,7 +80,7 @@ export function DashboardView() {
     });
   };
   
-  const websiteRankingData = mockRankingData.filter(
+  const websiteRankingData = rankingData.filter(
     data => data.websiteId === selectedWebsiteId
   );
   
@@ -92,12 +111,14 @@ export function DashboardView() {
             selectedWebsiteId={selectedWebsiteId}
             onSelectWebsite={setSelectedWebsiteId}
             websiteRankingData={websiteRankingData}
+            isLoadingRankings={isLoadingRankings}
           />
           
           {/* Right sidebar */}
           <div className="space-y-6 animate-fade-in" style={{ animationDelay: '300ms' }}>
-            <AddWebsiteForm onAddWebsite={handleAddWebsite} />
-            <QuickTipsCard />
+          <AddWebsiteForm onAddWebsite={handleAddWebsite} />
+          {/* <RankingDebugTest /> */}
+          <QuickTipsCard />
           </div>
         </div>
       </div>
