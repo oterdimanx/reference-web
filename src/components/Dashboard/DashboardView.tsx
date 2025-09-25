@@ -46,7 +46,7 @@ export function DashboardView() {
           } else {
             setSelectedWebsiteId(userWebsites[0].websiteId);
           }
-          
+
           // Fetch real ranking data
           setIsLoadingRankings(true);
           const realRankingData = await getDashboardRankingData(userWebsites);
