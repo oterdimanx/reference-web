@@ -237,7 +237,7 @@ export const getDashboardRankingData = async (websites: { websiteId: string; dom
   try {
     // Get all website IDs
     const websiteIds = websites.map(w => w.websiteId);
-
+    
     // First, get the active keywords for each website (same as keywords page)
     const { data: websiteData, error: websiteError } = await supabase
       .from('websites')
@@ -355,6 +355,7 @@ export const getWebsitesWithRankingData = async (websites: { websiteId: string; 
     return [];
   }
 };
+
 // Get ranking history for a specific keyword
 export const getKeywordRankingHistory = async (websiteId: string, keyword: string, searchEngine: string = 'google'): Promise<RankingSnapshot[]> => {
   try {
