@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 interface PricingPlan {
   id: string;
@@ -192,23 +193,26 @@ export const SubscriptionUpgrade = () => {
           const isDowngrade = currentSubscription && plan.price < currentSubscription.pricing.price;
           
           return (
-            <Card key={plan.id} className={isCurrentPlan ? 'border-primary' : ''}>
-              <CardHeader>
+            <Card key={plan.id} className={isCurrentPlan ? 'chrome-card-subtle card-hover h-full' : ''}>
+              
+              {isCurrentPlan && (
+                <Badge variant="default" className="metallic-badge absolute -top-3 left-1/2 transform -translate-x-1/2 z-[200]">{language === 'fr' ? 'Plan Actuel' : 'Current Plan'}</Badge>
+              )}
+              
+              <CardHeader className="text-center">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{getPlanTitle(plan)}</CardTitle>
-                  {isCurrentPlan && (
-                    <Badge variant="default">{language === 'fr' ? 'Plan Actuel' : 'Current Plan'}</Badge>
-                  )}
+                  <CardTitle className="text-2xl gradient-text">{getPlanTitle(plan)}</CardTitle>
                 </div>
                 <CardDescription>
-                  <span className="text-2xl font-bold">€{plan.price}</span>
-                  <span className="text-muted-foreground">{getPaymentFrequency(plan)}</span>
+                  <span className="text-4xl font-bold text-rank-teal gradient-text">€{plan.price}</span>
+                  <span className="text-gray-500 ml-2">{getPaymentFrequency(plan)}</span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 mb-4">
+                <ul className="space-y-3">
                   {getFeatures(plan).map((feature, index) => (
                     <li key={index} className="flex items-center">
+                      <Check className="h-5 w-5 text-rank-teal mr-3" />
                       <span className="text-sm">{feature}</span>
                     </li>
                   ))}
@@ -217,7 +221,7 @@ export const SubscriptionUpgrade = () => {
                 <Button
                   onClick={() => handleUpgrade(plan)}
                   disabled={isCurrentPlan || isDowngrade || upgrading === plan.id}
-                  className="w-full"
+                  className="w-full chrome-accent"
                   variant={isCurrentPlan ? "secondary" : "default"}
                 >
                   {upgrading === plan.id 

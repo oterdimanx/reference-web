@@ -10,7 +10,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
-import { Home, DollarSign, Settings, ArrowLeftCircle, BarChart3, Globe, Tags, TrendingUp, Activity, Search } from 'lucide-react';
+import { Home, DollarSign, Settings, ArrowLeftCircle, BarChart3, Globe, Tags, TrendingUp, Activity, Search, MessageSquare } from 'lucide-react';
 
 export function DesktopNavigation() {
   const { user, isAdmin } = useAuth();
@@ -29,42 +29,6 @@ export function DesktopNavigation() {
 
   return (
     <nav className="flex items-center space-x-6">
-      <Link to="/" className="text-gray-600 hover:text-rank-teal dark:text-gray-300 dark:hover:text-rank-teal">
-        {t('common', 'home')}
-      </Link>
-      
-      <NavigationMenu>
-        <NavigationMenuList>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger className="text-gray-600 hover:text-rank-teal dark:text-gray-300 dark:hover:text-rank-teal bg-transparent hover:bg-transparent data-[state=open]:bg-transparent">
-              {t('common', 'directories')}
-            </NavigationMenuTrigger>
-            <NavigationMenuContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-              <div className="p-2 w-48">
-                <Link
-                  to="/directories"
-                  className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
-                >
-                  {t('common', 'directories')}
-                </Link>
-                <Link
-                  to="/about"
-                  className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
-                >
-                  {t('common', 'about')}
-                </Link>
-                <Link
-                  to="/pricing"
-                  className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
-                >
-                  Pricing
-                </Link>
-              </div>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
-
       {user && isAdmin && (
         <NavigationMenu>
           <NavigationMenuList>
@@ -163,6 +127,17 @@ export function DesktopNavigation() {
                     {t('admin', 'userManagement')}
                   </Link>
                   <Link
+                    to="/admin/contact"
+                    className={`flex items-center px-4 py-2 text-sm rounded ${
+                      isActive('/admin/contact') 
+                        ? 'bg-rank-teal text-white' 
+                        : 'text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {t('admin', 'contactManagement')}
+                  </Link>
+                  <Link
                     to="/admin/seo"
                     className={`flex items-center px-4 py-2 text-sm rounded ${
                       isActive('/admin/seo') 
@@ -188,15 +163,78 @@ export function DesktopNavigation() {
         </NavigationMenu>
       )}
       
+      <Link to="/" className="text-gray-600 hover:text-rank-teal dark:text-gray-300 dark:hover:text-rank-teal">
+        {t('common', 'home')}
+      </Link>
+      
+      <NavigationMenu>
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger className="text-gray-600 hover:text-rank-teal dark:text-gray-300 dark:hover:text-rank-teal bg-transparent hover:bg-transparent data-[state=open]:bg-transparent">
+                <Link
+                  to="/directories"
+                  className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
+                >
+                  {t('common', 'directories')}
+                </Link>
+            </NavigationMenuTrigger>
+            <NavigationMenuContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
+              <div className="p-2 w-48">
+                <Link
+                  to="/directories"
+                  className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
+                >
+                  {t('common', 'directories')}
+                </Link>
+                <Link
+                  to="/about"
+                  className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
+                >
+                  {t('common', 'about')}
+                </Link>
+                <Link
+                  to="/pricing"
+                  className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
+                >
+                  Pricing
+                </Link>
+              </div>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+      
       {user && (
-        <>
-          <Link to="/all-websites" className="text-gray-600 hover:text-rank-teal dark:text-gray-300 dark:hover:text-rank-teal">
-            {t('common', 'allWebsites')}
-          </Link>
-          <Link to="/add-website" className="text-gray-600 hover:text-rank-teal dark:text-gray-300 dark:hover:text-rank-teal">
-            {t('common', 'addWebsite')}
-          </Link>
-        </>
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger className="text-gray-600 hover:text-rank-teal dark:text-gray-300 dark:hover:text-rank-teal bg-transparent hover:bg-transparent data-[state=open]:bg-transparent">
+                  <Link
+                    to="/all-websites"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
+                  >
+                    {t('common', 'allWebsites')}
+                  </Link>
+              </NavigationMenuTrigger>
+              <NavigationMenuContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
+                <div className="p-2 w-48">
+                  <Link
+                    to="/all-websites"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
+                  >
+                    {t('common', 'allWebsites')}
+                  </Link>
+                  <Link
+                    to="/add-website"
+                    className="block px-4 py-2 text-sm text-gray-600 hover:text-rank-teal hover:bg-gray-100 dark:text-gray-300 dark:hover:text-rank-teal dark:hover:bg-gray-700 rounded"
+                  >
+                    {t('common', 'addWebsite')}
+                  </Link>
+                </div>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       )}
     </nav>
   );

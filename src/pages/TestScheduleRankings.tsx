@@ -39,46 +39,12 @@ interface EnrichedRequest {
 
 const TestScheduleRankings = () => {
   const { user, loading } = useAuth();
-  const isAdmin = useAdminStatus(user?.id);
+  const { isAdmin, adminLoading } = useAdminStatus(user?.id);
   const [result, setResult] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [cronLogs, setCronLogs] = useState<CronLog[]>([]);
   const [pendingRequests, setPendingRequests] = useState<EnrichedRequest[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
-
-  // Show loading state while checking authentication
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rank-teal"></div>
-      </div>
-    );
-  }
-
-  // Redirect to auth page if not logged in
-  if (!user) {
-    return <Navigate to="/auth" />;
-  }
-
-  // Access denied if not admin
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>You do not have permission to access this page.</p>
-            </CardContent>
-          </Card>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   const loadData = async () => {
     setIsLoadingData(true);
@@ -189,12 +155,20 @@ const TestScheduleRankings = () => {
     setResult("Triggering cron job manually...");
     
     try {
-      // Use direct HTTP call to simulate cron job
+      // Get the user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setResult("Error: No active session found. Please refresh the page and try again.");
+        return;
+      }
+
+      // Use direct HTTP call with the user's session token
       const response = await fetch('https://jixmwjplysaqlyzhpcmk.supabase.co/functions/v1/schedule-rankings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppeG13anBseXNhcWx5emhwY21rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjQzNzYyNCwiZXhwIjoyMDYyMDEzNjI0fQ.KuvbemiiLfpGDdb5D0DhBoWKhf8IUERILlUqJcIoOXw'
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({ triggered_by: 'manual_cron_simulation' })
       });
@@ -227,6 +201,49 @@ const TestScheduleRankings = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Show loading state while checking authentication and admin status
+  if (loading || adminLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rank-teal"></div>
+      </div>
+    );
+  }
+
+  // Redirect to auth page if not logged in
+  if (!user) {
+    return <Navigate to="/auth" />;
+  }
+
+  // Access denied if not admin
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-10">
+                <h2 className="text-2xl font-semibold mb-4 text-red-600">Access Denied</h2>
+                <p className="mb-6 text-muted-foreground">
+                  You do not have permission to access this page.
+                </p>
+                <Button 
+                  variant="default" 
+                  onClick={() => window.location.href = '/'}
+                >
+                  Return to Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />

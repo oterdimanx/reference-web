@@ -237,7 +237,28 @@ export const getDashboardRankingData = async (websites: { websiteId: string; dom
   try {
     // Get all website IDs
     const websiteIds = websites.map(w => w.websiteId);
-    
+
+    // First, get the active keywords for each website (same as keywords page)
+    const { data: websiteData, error: websiteError } = await supabase
+      .from('websites')
+      .select('id, keywords')
+      .in('id', websiteIds)
+      .not('keywords', 'is', null)
+      .not('keywords', 'eq', '');
+
+    if (websiteError) {
+      console.error('Error fetching website keywords:', websiteError);
+      return [];
+    }
+
+    // Create a map of website -> active keywords
+    const activeKeywordsMap: { [websiteId: string]: string[] } = {};
+    websiteData.forEach(website => {
+      if (website.keywords) {
+        activeKeywordsMap[website.id] = website.keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
+      }
+    });
+
     const { data, error } = await supabase
       .from('ranking_snapshots')
       .select('*')
@@ -255,6 +276,13 @@ export const getDashboardRankingData = async (websites: { websiteId: string; dom
     data.forEach(snapshot => {
       const websiteId = snapshot.website_id as string;
       const keyword = snapshot.keyword as string;
+      
+      // Only include keywords that are still active in the website's keyword list
+      const activeKeywords = activeKeywordsMap[websiteId];
+      if (!activeKeywords || !activeKeywords.includes(keyword)) {
+        return; // Skip this keyword as it's been removed from the user's interface
+      }
+      
       if (!groupedByWebsite[websiteId]) {
         groupedByWebsite[websiteId] = {};
       }
@@ -300,6 +328,33 @@ export const getDashboardRankingData = async (websites: { websiteId: string; dom
   }
 };
 
+// Get websites that have ranking data
+export const getWebsitesWithRankingData = async (websites: { websiteId: string; domain: string }[]): Promise<{ websiteId: string; domain: string }[]> => {
+  if (!websites.length) return [];
+  
+  try {
+    const websiteIds = websites.map(w => w.websiteId);
+    
+    const { data, error } = await supabase
+      .from('ranking_snapshots')
+      .select('website_id')
+      .in('website_id', websiteIds);
+
+    if (error) {
+      console.error('Error fetching websites with ranking data:', error);
+      return [];
+    }
+
+    // Get unique website IDs that have ranking data
+    const websiteIdsWithData = [...new Set(data.map(snapshot => snapshot.website_id))];
+    
+    // Return websites that have ranking data
+    return websites.filter(website => websiteIdsWithData.includes(website.websiteId));
+  } catch (error) {
+    console.error('Exception fetching websites with ranking data:', error);
+    return [];
+  }
+};
 // Get ranking history for a specific keyword
 export const getKeywordRankingHistory = async (websiteId: string, keyword: string, searchEngine: string = 'google'): Promise<RankingSnapshot[]> => {
   try {
